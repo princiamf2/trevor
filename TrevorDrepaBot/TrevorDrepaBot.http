@@ -1,0 +1,6 @@
+@TrevorDrepaBot_HostAddress = http://localhost:5090
+
+GET {{TrevorDrepaBot_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
