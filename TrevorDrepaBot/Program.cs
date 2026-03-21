@@ -23,7 +23,7 @@ builder.Services.AddSingleton<IBotFrameworkHttpAdapter, BotFrameworkHttpAdapter>
 builder.Services.AddScoped<DrepaConversationEngine>();
 builder.Services.AddScoped<IBot, DrepaBot>();
 
-builder.Services.AddSingleton<IIntentService, OpenAIIntentService>();
+builder.Services.AddSingleton<IIntentService, ClaudeIntentService>();
 
 var app = builder.Build();
 
@@ -39,7 +39,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+// Garde ceci seulement si ton HTTPS local est proprement configuré
+// app.UseHttpsRedirection();
+
 app.UseAuthorization();
 app.MapControllers();
 

@@ -1,11 +1,39 @@
 {
   "Version": 1,
-  "Hash": "bh37Flu9R6PBISh0fy8ie1axnXmhEFf8pfZvJpL0vpk=",
+  "Hash": "iRb1qkj9+Acc8YBVy6akaB98ncso5DoLOLF+qM8/lQI=",
   "Source": "TrevorDrepaBot",
   "BasePath": "_content/TrevorDrepaBot",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
-  "DiscoveryPatterns": [],
-  "Assets": []
+  "DiscoveryPatterns": [
+    {
+      "Name": "TrevorDrepaBot/wwwroot",
+      "Source": "TrevorDrepaBot",
+      "ContentRoot": "/home/michel/Bureau/trevor_AI/TrevorDrepaBot/wwwroot/",
+      "BasePath": "_content/TrevorDrepaBot",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "/home/michel/Bureau/trevor_AI/TrevorDrepaBot/wwwroot/index.html",
+      "SourceId": "TrevorDrepaBot",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/michel/Bureau/trevor_AI/TrevorDrepaBot/wwwroot/",
+      "BasePath": "_content/TrevorDrepaBot",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/index.html"
+    }
+  ]
 }

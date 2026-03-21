@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/home/michel/Bureau/trevor_drepa/TrevorDrepaBot/TrevorDrepaBot.csproj": {}
+    "/home/michel/Bureau/trevor_AI/TrevorDrepaBot/TrevorDrepaBot.csproj": {}
   },
   "projects": {
-    "/home/michel/Bureau/trevor_drepa/TrevorDrepaBot/TrevorDrepaBot.csproj": {
+    "/home/michel/Bureau/trevor_AI/TrevorDrepaBot/TrevorDrepaBot.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/michel/Bureau/trevor_drepa/TrevorDrepaBot/TrevorDrepaBot.csproj",
+        "projectUniqueName": "/home/michel/Bureau/trevor_AI/TrevorDrepaBot/TrevorDrepaBot.csproj",
         "projectName": "TrevorDrepaBot",
-        "projectPath": "/home/michel/Bureau/trevor_drepa/TrevorDrepaBot/TrevorDrepaBot.csproj",
+        "projectPath": "/home/michel/Bureau/trevor_AI/TrevorDrepaBot/TrevorDrepaBot.csproj",
         "packagesPath": "/home/michel/.nuget/packages/",
-        "outputPath": "/home/michel/Bureau/trevor_drepa/TrevorDrepaBot/obj/",
+        "outputPath": "/home/michel/Bureau/trevor_AI/TrevorDrepaBot/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/michel/.nuget/NuGet/NuGet.Config"
@@ -38,6 +38,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Anthropic": {
+              "target": "Package",
+              "version": "[12.9.0, )"
+            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[8.0.21, )"
@@ -63,10 +67,6 @@
             "Microsoft.EntityFrameworkCore.Sqlite": {
               "target": "Package",
               "version": "[8.0.11, )"
-            },
-            "OpenAI": {
-              "target": "Package",
-              "version": "[2.9.1, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",

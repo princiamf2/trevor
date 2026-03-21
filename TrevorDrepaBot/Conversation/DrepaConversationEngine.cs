@@ -33,7 +33,138 @@ namespace TrevorDrepaBot.Conversation
             "8️⃣ Voir un bilan santé simple\n\n" +
             "➜ Réponds avec un **numéro** (1, 2, 3…) ou un **mot-clé** (\"douleur\", \"urgence\", \"émotions\", etc.).\n" +
             "Tu peux aussi écrire `menu` à tout moment pour revoir ces options, ou `reset` pour repartir de zéro.";
+        private static bool IsYes(string text)
+        {
+            return text.Contains("oui") || text.Contains("ouais") || text.Contains("yes");
+        }
 
+        private static bool IsNo(string text)
+        {
+            return text.Contains("non") || text.Contains("no");
+        }
+
+        private static int? ExtractScore(string text)
+        {
+            if (int.TryParse(text.Trim(), out var value) && value >= 0 && value <= 10)
+                return value;
+
+            var digits = new string(text.Where(char.IsDigit).ToArray());
+            if (int.TryParse(digits, out value) && value >= 0 && value <= 10)
+                return value;
+
+            return null;
+        }
+
+        private static string? ExtractPainLocation(string text)
+        {
+            string[] knownLocations =
+            [
+                "jambe", "jambes", "bras", "dos", "poitrine", "ventre",
+                "tête", "tete", "hanche", "genou", "genoux", "pied", "pieds",
+                "main", "mains", "épaule", "epaule", "côte", "cotes", "côtes"
+            ];
+
+            foreach (var location in knownLocations)
+            {
+                if (text.Contains(location))
+                    return location;
+            }
+
+            return null;
+        }
+        private string? TrySmartLocalReply(string text, SessionState state)
+        {
+            // 🔥 compréhension douleur libre
+            if (text.Contains("mal") || text.Contains("douleur"))
+            {
+                var location = ExtractPainLocation(text);
+                var score = ExtractScore(text);
+
+                if (location != null && score.HasValue)
+                {
+                    state.TempPainLevel = score;
+                    return $"Ok, donc tu as mal à **{location}** avec une douleur de **{score}/10**.\n\nDepuis quand ça a commencé ?";
+                }
+
+                if (location != null)
+                {
+                    return $"D’accord, tu as mal à **{location}**.\n\nTu peux me dire sur 10 à quel point la douleur est forte ?";
+                }
+
+                if (score.HasValue)
+                {
+                    return $"Ok, douleur à **{score}/10**.\n\nC’est où exactement ?";
+                }
+
+                return "Je comprends que tu as mal.\n\nTu peux me dire où exactement et à quel niveau sur 10 ?";
+            }
+
+            // fatigue
+            if (text.Contains("fatigu"))
+            {
+                return "Tu te sens fatigué… c’est fréquent avec la drépanocytose.\n\nSur 10 tu dirais combien ?";
+            }
+
+            // émotion
+            if (text.Contains("triste") || text.Contains("stress") || text.Contains("angoisse"))
+            {
+                return "Merci de me le dire. Tu veux m’expliquer ce qui te pèse le plus ?";
+            }
+
+            // respiration = urgence
+            if (text.Contains("respire") || text.Contains("essouffl"))
+            {
+                return "⚠️ Si tu es essoufflé, il faut contacter un médecin ou les urgences rapidement.";
+            }
+
+            return null;
+        }
+        private static string? DetectIntentLocally(string text, SessionState state)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
+
+            if (text == "menu" || text == "/menu")
+                return "menu";
+
+            if (text == "1" || text.Contains("drépanocytose") || text.Contains("drepanocytose"))
+                return "medical_information";
+
+            if (text == "2" || text.Contains("douleur") || text.Contains("crise") || text.Contains("j'ai mal") || text.Contains("jai mal"))
+                return "pain_crisis";
+
+            if (text == "3" || text.Contains("école") || text.Contains("ecole") || text.Contains("travail") || text.Contains("employeur"))
+                return "school_work_support";
+
+            if (text == "4" || text.Contains("stress") || text.Contains("angoisse") || text.Contains("moral") || text.Contains("triste"))
+                return "emotional_support";
+
+            if (text == "5" || text.Contains("urgence") || text.Contains("urgent") || text.Contains("médecin") || text.Contains("medecin"))
+                return "prepare_appointment";
+
+            if (text == "7" || text.Contains("historique santé") || text.Contains("historique sante") || text.Contains("check-ins"))
+                return "history";
+
+            if (text == "8" || text.Contains("bilan santé") || text.Contains("bilan sante"))
+                return "summary";
+
+            if (text.Contains("check-in") || text.Contains("checkin") || text.Contains("suivi santé") || text.Contains("suivi sante"))
+                return "health_checkin";
+
+            if (state.PendingStep == "health_q1_pain" && (ExtractScore(text).HasValue || ExtractPainLocation(text) != null))
+                return "health_q1_pain_answer";
+
+            if (state.PendingStep == "health_q2_fatigue" && ExtractScore(text).HasValue)
+                return "health_q2_fatigue_answer";
+
+            if (state.PendingStep == "health_q3_fever" && (IsYes(text) || IsNo(text)))
+                return "health_q3_fever_answer";
+
+            if (state.PendingStep == "health_q4_breathing" && (IsYes(text) || IsNo(text)))
+                return "health_q4_breathing_answer";
+
+            return null;
+        }
         public async Task<string> GetReplyAsync(string userText, string sessionId, CancellationToken cancellationToken = default)
         {
             var text = (userText ?? "").Trim().ToLowerInvariant();
@@ -43,6 +174,11 @@ namespace TrevorDrepaBot.Conversation
             {
                 await _sessionRepository.ResetAsync(sessionId, cancellationToken);
                 return "On repart de zéro.\n\n" + MenuText;
+            }
+
+            if (text == "menu" || text == "/menu")
+            {
+                return MenuText;
             }
 
             if (text.Contains("check-in") || text.Contains("checkin") ||
@@ -66,30 +202,52 @@ namespace TrevorDrepaBot.Conversation
 
             if (state.PendingStep == "health_q1_pain")
             {
-                if (!int.TryParse(text, out var pain) || pain < 0 || pain > 10)
+                var pain = ExtractScore(text);
+                var location = ExtractPainLocation(text);
+
+                if (!pain.HasValue && location != null)
                 {
-                    return "Merci de répondre avec un nombre entre **0 et 10** pour la douleur.";
+                    return
+                        $"J’ai compris que la douleur est vers **{location}**.\n\n" +
+                        "Pour que je puisse suivre ça proprement, peux-tu aussi me donner une **note de douleur de 0 à 10** ?";
                 }
 
-                state.TempPainLevel = pain;
+                if (!pain.HasValue)
+                {
+                    return
+                        "Tu peux répondre librement, par exemple :\n" +
+                        "• `7`\n" +
+                        "• `j’ai mal à la jambe, je dirais 6`\n" +
+                        "• `douleur 8/10`";
+                }
+
+                state.TempPainLevel = pain.Value;
                 state.PendingStep = "health_q2_fatigue";
                 await _sessionRepository.SaveAsync(sessionId, state, cancellationToken);
 
-                return "2️⃣ Sur une échelle de **0 à 10**, quel est ton niveau de fatigue actuel ?";
+                return
+                    $"Merci, j’ai noté une douleur à **{pain.Value}/10**.\n\n" +
+                    "2️⃣ Et ton niveau de **fatigue**, sur 0 à 10 ?";
             }
 
             if (state.PendingStep == "health_q2_fatigue")
             {
-                if (!int.TryParse(text, out var fatigue) || fatigue < 0 || fatigue > 10)
+                var fatigue = ExtractScore(text);
+
+                if (!fatigue.HasValue)
                 {
-                    return "Merci de répondre avec un nombre entre **0 et 10** pour la fatigue.";
+                    return
+                        "Tu peux répondre par un nombre de **0 à 10** pour la fatigue.\n" +
+                        "Exemple : `5` ou `fatigue 6/10`.";
                 }
 
-                state.TempFatigueLevel = fatigue;
+                state.TempFatigueLevel = fatigue.Value;
                 state.PendingStep = "health_q3_fever";
                 await _sessionRepository.SaveAsync(sessionId, state, cancellationToken);
 
-                return "3️⃣ As-tu de la **fièvre** en ce moment ? Réponds par `oui` ou `non`.";
+                return
+                    $"Merci, j’ai noté une fatigue à **{fatigue.Value}/10**.\n\n" +
+                    "3️⃣ Est-ce que tu as de la **fièvre** en ce moment ? (`oui` ou `non`)";
             }
 
             if (state.PendingStep == "health_q3_fever")
@@ -654,8 +812,30 @@ namespace TrevorDrepaBot.Conversation
                     "1️⃣ Avec qui veux-tu parler exactement, et dans quel cadre ?";
             }
 
-            var intent = await _intentService.DetectIntentAsync(userText);
-
+            // 🧠 tentative locale intelligente
+            var smart = TrySmartLocalReply(text, state);
+            if (smart != null)
+            {
+                await _sessionRepository.SaveAsync(sessionId, state, cancellationToken);
+                return smart;
+            }
+            string intent = "unknown";
+            try
+            {
+                intent = await _intentService.DetectIntentAsync(userText);
+            }
+            catch
+            {
+                intent = "unknown";
+            }
+            if (intent == "unknown")
+            {
+                return "Je veux bien t’aider. Est-ce que c’est plutôt :\n" +
+                    "• une douleur / un symptôme physique\n" +
+                    "• une question pour un médecin\n" +
+                    "• du stress / le moral\n" +
+                    "• l’école ou le travail ?";
+            }
             switch (intent)
             {
                 case "pain_crisis":

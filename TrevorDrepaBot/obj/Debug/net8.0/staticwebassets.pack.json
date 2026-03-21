@@ -1,0 +1,25 @@
+{
+  "Files": [
+    {
+      "Id": "/home/michel/Bureau/trevor_AI/TrevorDrepaBot/wwwroot/index.html",
+      "PackagePath": "staticwebassets/index.html"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.TrevorDrepaBot.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.build.TrevorDrepaBot.props",
+      "PackagePath": "build\\TrevorDrepaBot.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.TrevorDrepaBot.props",
+      "PackagePath": "buildMultiTargeting\\TrevorDrepaBot.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.TrevorDrepaBot.props",
+      "PackagePath": "buildTransitive\\TrevorDrepaBot.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

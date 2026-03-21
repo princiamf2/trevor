@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trevor Drepa Bot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f5f7fb;
+      color: #1f2937;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 24px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      padding: 24px;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      color: #4b5563;
+      margin-bottom: 24px;
+    }
+
+    .chat-box {
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      background: #fafafa;
+      height: 420px;
+      overflow-y: auto;
+      padding: 16px;
+      margin-bottom: 16px;
+      white-space: pre-wrap;
+    }
+
+    .msg {
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      max-width: 80%;
+    }
+
+    .user {
+      background: #dbeafe;
+      margin-left: auto;
+    }
+
+    .bot {
+      background: #ede9fe;
+      margin-right: auto;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+    }
+
+    input {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      font-size: 1rem;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+    }
+
+    button.secondary {
+      background: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Trevor Drepa Bot</h1>
+      <p class="subtitle">
+        Assistant d’accompagnement autour de la drépanocytose.
+      </p>
+
+      <div id="chat" class="chat-box"></div>
+
+      <div class="controls">
+        <input id="messageInput" type="text" placeholder="Écris ton message..." />
+        <button id="sendBtn">Envoyer</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    let sessionId = localStorage.getItem("trevor_session_id");
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem("trevor_session_id", sessionId);
+    }
+
+    function addMessage(text, type) {
+      const div = document.createElement("div");
+      div.className = `msg ${type}`;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendMessage(text) {
+      addMessage(text, "user");
+
+      const response = await fetch("/api/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text,
+          sessionId
+        })
+      });
+
+      if (!response.ok) {
+        addMessage("Erreur serveur lors de l'appel à Trevor.", "bot");
+        return;
+      }
+
+      const data = await response.json();
+      addMessage(data.reply ?? "Aucune réponse.", "bot");
+    }
+
+    sendBtn.addEventListener("click", async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      await sendMessage(text);
+    });
+
+    input.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        await sendMessage(text);
+      }
+    });
+
+    resetBtn.addEventListener("click", async () => {
+      chat.innerHTML = "";
+      sessionId = crypto.randomUUID();
+      localStorage.setItem("trevor_session_id", sessionId);
+      await sendMessage("bonjour");
+    });
+
+    window.addEventListener("load", async () => {
+      await sendMessage("bonjour");
+    });
+  </script>
+</body>
+</html>
