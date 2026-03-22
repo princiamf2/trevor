@@ -324,10 +324,3 @@
 /home/michel/Bureau/trevor_AI/TrevorDrepaBot/obj/Debug/net8.0/TrevorDrepaBot.genruntimeconfig.cache
 /home/michel/Bureau/trevor_AI/TrevorDrepaBot/obj/Debug/net8.0/ref/TrevorDrepaBot.dll
 /home/michel/Bureau/trevor_AI/TrevorDrepaBot/bin/Debug/net8.0/TrevorDrepaBot.staticwebassets.runtime.json
-/home/michel/Bureau/trevor_AI/TrevorDrepaBot/bin/Debug/net8.0/Anthropic.dll
-/home/michel/Bureau/trevor_AI/TrevorDrepaBot/bin/Debug/net8.0/Microsoft.Extensions.AI.Abstractions.dll
-/home/michel/Bureau/trevor_AI/TrevorDrepaBot/bin/Debug/net8.0/System.IO.Pipelines.dll
-/home/michel/Bureau/trevor_AI/TrevorDrepaBot/bin/Debug/net8.0/System.Net.ServerSentEvents.dll
-/home/michel/Bureau/trevor_AI/TrevorDrepaBot/bin/Debug/net8.0/System.Text.Encodings.Web.dll
-/home/michel/Bureau/trevor_AI/TrevorDrepaBot/bin/Debug/net8.0/System.Text.Json.dll
-/home/michel/Bureau/trevor_AI/TrevorDrepaBot/bin/Debug/net8.0/runtimes/browser/lib/net8.0/System.Text.Encodings.Web.dll

@@ -33,6 +33,15 @@ namespace TrevorDrepaBot.Data
                 entity.Property(x => x.EnvContext);
                 entity.Property(x => x.EnvDifficulties);
                 entity.Property(x => x.EnvNeeds);
+                entity.Property(x => x.ConversationMode);
+                entity.Property(x => x.CurrentConcern);
+                entity.Property(x => x.SymptomLocation);
+                entity.Property(x => x.SymptomDuration);
+                entity.Property(x => x.SymptomNotes);
+                entity.Property(x => x.WaitingClarification);
+                entity.Property(x => x.CurrentTopic);
+                entity.Property(x => x.CurrentEmotion);
+                entity.Property(x => x.CurrentPriority);
             });
 
             modelBuilder.Entity<SymptomEntry>(entity =>

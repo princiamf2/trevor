@@ -1,136 +1,130 @@
-Trevor Drepa Bot
+🚀 Trevor Drepa Bot
 
-Trevor est un assistant conversationnel intelligent conçu pour accompagner les personnes vivant avec la drépanocytose.
+🧠 Assistant conversationnel intelligent pour accompagner les personnes vivant avec la drépanocytose.
 
-Il combine :
+📌 Vision
 
-une logique conversationnelle locale (rapide, sans API)
-une mémoire de session persistante (SQLite)
-un fallback IA (Claude) pour les cas complexes
+Trevor est un assistant conçu pour :
 
-⚠️ Important : Trevor ne remplace jamais un médecin, ni les urgences.
-C’est un outil d’accompagnement, de structuration et de soutien.
+aider à mieux comprendre la drépanocytose
+accompagner au quotidien (douleurs, fatigue, stress…)
+structurer les échanges avec :
+médecins
+école / travail
+offrir un support conversationnel humain et intelligent
 
-🧠 Fonctionnement du bot
+⚠️ Important :
+Trevor ne remplace jamais un médecin ni les urgences.
+C’est un outil d’accompagnement, pas un outil médical.
 
-Trevor fonctionne avec une architecture hybride :
+🧠 Architecture intelligente
 
-1. Cerveau local (prioritaire)
+Trevor repose sur une architecture hybride avancée :
 
-Le bot comprend directement :
+1️⃣ Cerveau local (prioritaire)
 
-douleur (localisation + intensité)
-fatigue
-émotions (stress, moral…)
-contexte école / travail
-préparation médicale
+Compréhension directe de :
 
-👉 Cela permet :
+symptômes physiques (douleur, fatigue…)
+émotions (stress, angoisse…)
+contexte (école, travail, logement…)
+situations médicales
 
-réponses rapides
-zéro coût API
-fonctionnement offline partiel
-2. Mémoire conversationnelle (SQLite)
+✅ Avantages :
 
-Chaque utilisateur a une session stockée :
+ultra rapide ⚡
+zéro coût API 💸
+fonctionne offline partiellement
+2️⃣ Mémoire conversationnelle (SQLite)
 
+Chaque utilisateur possède une session persistante :
+
+contexte actif (CurrentTopic)
+émotion (CurrentEmotion)
+priorité (CurrentPriority)
 état de conversation (PendingStep)
-section active (LastSection)
-données temporaires (douleur, fatigue, etc.)
-contenu des flows (RDV, école…)
 
 👉 Permet :
 
-conversations continues
-reprise du contexte
-historique utilisateur
-3. IA (Claude) – fallback uniquement
+conversations naturelles
+continuité intelligente
+adaptation des réponses
+3️⃣ IA (Claude) – fallback
 
-Claude est utilisé uniquement si :
+Utilisée uniquement si nécessaire :
 
-le message est ambigu
-le local ne comprend pas
+message ambigu
+incompréhension locale
 
-👉 Donc :
+👉 Résultat :
 
-coût réduit
-meilleure performance
-contrôle total du comportement
-🚀 Fonctionnalités actuelles
-💬 Conversation libre (NOUVEAU)
+coût minimal
+contrôle total
+comportement stable
+💬 Capacités conversationnelles (🔥 clé du projet)
 
-Trevor peut maintenant comprendre des phrases comme :
+Trevor comprend des phrases naturelles :
 
 "j’ai mal à la jambe"
-"douleur 7/10"
+"douleur 7/10 depuis hier"
 "je suis stressé"
-"mes cours me fatiguent"
-"je me sens bizarre"
+"mes cours me mettent la pression"
+"j’ai pas le temps avec mon appart"
 
-👉 Et répondre intelligemment avec des relances adaptées
+👉 Et répond avec contexte :
 
+"Je comprends… entre le logement et les cours, ça fait beaucoup.
+C’est surtout le manque de temps ou autre chose qui te pèse ?"
+🧩 Fonctionnalités
 🩺 Check-in santé
-
-Permet d’enregistrer :
-
 douleur (0–10)
 fatigue (0–10)
 fièvre
 respiration
 note libre
-
-Stocké en base SQLite.
-
 📜 Historique santé
-
-Affiche les derniers check-ins :
-
-date
-douleur
-fatigue
-fièvre
-respiration
-note
+derniers check-ins
+suivi dans le temps
 📊 Bilan santé
+moyennes
+tendances
+alertes
+🗓 Préparation rendez-vous médical
 
-Résumé automatique :
-
-moyenne douleur
-moyenne fatigue
-nombre de fièvres
-respiration
-tendance globale
-🗓 Préparer un rendez-vous médical
-
-Structure :
+Génère un résumé :
 
 raison
 questions
 inquiétudes
 
-👉 Génère un résumé prêt à montrer au médecin
+👉 prêt à montrer au médecin
 
-🏫 École / travail
+🏫 École / Travail
 
-Aide à préparer :
+Aide à structurer :
 
-discussion avec prof / employeur
 difficultés
 besoins
 aménagements
-🧱 Architecture du projet
-Bots/           → Bot Framework
-Conversation/   → Cerveau conversationnel
-Controllers/    → API HTTP
-Data/           → SQLite + EF Core
-Models/         → Entités
-Repositories/   → Accès DB
-Services/       → Claude (intent)
 
-👉 Le cœur du bot est ici :
+👉 utilisable pour :
+
+discussions
+mails
+demandes officielles
+🧱 Architecture technique
+Bots/            → Bot Framework
+Conversation/    → Cerveau (core du projet)
+Controllers/     → API HTTP
+Data/            → SQLite + EF Core
+Models/          → Entités
+Repositories/    → Accès DB
+Services/        → IA (Claude)
+
+📍 Fichier clé :
 
 Conversation/DrepaConversationEngine.cs
-⚙️ Technologies
+⚙️ Stack technique
 .NET 8
 ASP.NET Core
 SQLite
@@ -144,32 +138,27 @@ dotnet restore
 ▶️ Lancer le projet
 dotnet run
 
-Disponible sur :
+👉 Disponible sur :
 
 http://localhost:5090
 🧪 Tester le bot
 Swagger
 http://localhost:5090/swagger
-
-POST :
-
-/api/test
-
-Exemple :
+Exemple API
+POST /api/test
 
 {
-  "text": "j’ai mal à la jambe",
+  "text": "je suis stressé",
   "sessionId": "michel"
 }
-curl
+Curl
 curl -X POST http://localhost:5090/api/test \
 -H "Content-Type: application/json" \
--d '{"text":"je suis stressé","sessionId":"michel"}'
-🔑 Configuration Claude (optionnel)
+-d '{"text":"j’ai mal à la jambe","sessionId":"michel"}'
+🔑 Configuration IA (optionnel)
 
-Fichier :
+Dans appsettings.json :
 
-appsettings.json
 "Claude": {
   "ApiKey": "TA_CLE_API",
   "Model": "claude-3-5-haiku-latest"
@@ -177,68 +166,60 @@ appsettings.json
 
 👉 Sans clé :
 
-le bot fonctionne 100% en local
-Claude est simplement désactivé
-💡 Mode offline
+Trevor fonctionne 100% local
+IA désactivée automatiquement
+📴 Mode offline
 
-Trevor peut fonctionner sans IA externe :
+Fonctionne sans IA :
 
 conversation locale
 flows complets
 check-in
 historique
 
-👉 Claude = amélioration, pas dépendance
+👉 Claude = bonus, pas dépendance
 
-🧪 Exemple réel
-Utilisateur : je me sens bizarre
+🧠 Exemple réel
+User : je me sens bizarre
 
 Bot :
 Tu te sens bizarre… c’est plutôt physique ou émotionnel ?
 
-Utilisateur : physique
+User : physique
 
 Bot :
-Tu peux me dire où exactement, depuis quand, et sur 10 ?
+Tu peux me dire où, depuis quand, et sur 10 ?
 
-Utilisateur : jambe 7/10 depuis hier
+User : jambe 7/10 depuis hier
 
 Bot :
 D’accord, douleur jambe 7/10 depuis hier.
-Est-ce que tu as aussi de la fièvre ?
-🎯 Objectif
+Est-ce que tu as de la fièvre ?
+🎯 Objectif du projet
 
 Trevor vise à devenir :
 
-un assistant pour patients drépanocytose
-un outil pour associations (Suissedrépano)
-un support pour médecins / suivi
-un bot conversationnel intelligent mais safe
+🤝 assistant pour patients drépanocytose
+🏥 outil pour associations (ex : Suissedrépano)
+🧑‍⚕️ support de suivi
+🧠 IA conversationnelle humaine et safe
 📌 État actuel
 
-✔ Prototype fonctionnel
-✔ Conversation hybride (local + IA)
-✔ Persistance SQLite
-✔ Interface web simple
+✅ Prototype fonctionnel
+✅ Mémoire conversationnelle
+✅ IA fallback
+✅ API opérationnelle
 
 🚧 À venir :
 
-meilleur NLP local
-réponses Claude complètes (pas juste intent)
-UI améliorée
-déploiement
+NLP local avancé
+réponses IA plus naturelles
+interface utilisateur
+déploiement production
 👤 Auteur
 
-Projet initié par Michel
-Dans un cadre associatif autour de la drépanocytose
+En collaboration avec Suissedrépano
 
-🔥 Important (tech)
-
-👉 Le cœur du comportement actuel est ici :
-
-TrySmartLocalReply → logique conversationnelle
-SessionState → mémoire
-GetReplyAsync → moteur principal
 ⚖️ Licence
 
 Projet associatif – à définir

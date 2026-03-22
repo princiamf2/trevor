@@ -18,9 +18,20 @@ namespace TrevorDrepaBot.Models
         public string? EnvNeeds { get; set; }
 
         public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+
         public int? TempPainLevel { get; set; }
         public int? TempFatigueLevel { get; set; }
         public bool? TempHasFever { get; set; }
         public bool? TempHasBreathingIssue { get; set; }
+
+        public string? ConversationMode { get; set; }
+        public string? CurrentConcern { get; set; }
+        public string? SymptomLocation { get; set; }
+        public string? SymptomDuration { get; set; }
+        public string? SymptomNotes { get; set; }
+        public string? CurrentTopic { get; set; }
+        public string? CurrentEmotion { get; set; }
+        public string? CurrentPriority { get; set; }
+        public bool? WaitingClarification { get; set; }
     }
 }

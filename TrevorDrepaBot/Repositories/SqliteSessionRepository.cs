@@ -62,6 +62,15 @@ namespace TrevorDrepaBot.Repositories
             entity.TempFatigueLevel = state.TempFatigueLevel;
             entity.TempHasFever = state.TempHasFever;
             entity.TempHasBreathingIssue = state.TempHasBreathingIssue;
+            entity.ConversationMode = state.ConversationMode;
+            entity.CurrentConcern = state.CurrentConcern;
+            entity.SymptomLocation = state.SymptomLocation;
+            entity.SymptomDuration = state.SymptomDuration;
+            entity.SymptomNotes = state.SymptomNotes;
+            entity.WaitingClarification = state.WaitingClarification;
+            entity.CurrentTopic = state.CurrentTopic;
+            entity.CurrentEmotion = state.CurrentEmotion;
+            entity.CurrentPriority = state.CurrentPriority;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
@@ -87,6 +96,15 @@ namespace TrevorDrepaBot.Repositories
             entity.TempFatigueLevel = null;
             entity.TempHasFever = null;
             entity.TempHasBreathingIssue = null;
+            entity.ConversationMode = null;
+            entity.CurrentConcern = null;
+            entity.SymptomLocation = null;
+            entity.SymptomDuration = null;
+            entity.SymptomNotes = null;
+            entity.WaitingClarification = null;
+            entity.CurrentTopic = null;
+            entity.CurrentEmotion = null;
+            entity.CurrentPriority = null;
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
@@ -94,6 +112,9 @@ namespace TrevorDrepaBot.Repositories
         {
             return new SessionState
             {
+                CurrentTopic = entity.CurrentTopic,
+                CurrentEmotion = entity.CurrentEmotion,
+                CurrentPriority = entity.CurrentPriority,
                 LastSection = entity.LastSection,
                 PendingStep = entity.PendingStep,
                 RdvReason = entity.RdvReason,
@@ -105,7 +126,13 @@ namespace TrevorDrepaBot.Repositories
                 TempPainLevel = entity.TempPainLevel,
                 TempFatigueLevel = entity.TempFatigueLevel,
                 TempHasFever = entity.TempHasFever,
-                TempHasBreathingIssue = entity.TempHasBreathingIssue
+                TempHasBreathingIssue = entity.TempHasBreathingIssue,
+                ConversationMode = entity.ConversationMode,
+                CurrentConcern = entity.CurrentConcern,
+                SymptomLocation = entity.SymptomLocation,
+                SymptomDuration = entity.SymptomDuration,
+                SymptomNotes = entity.SymptomNotes,
+                WaitingClarification = entity.WaitingClarification
             };
         }
     }

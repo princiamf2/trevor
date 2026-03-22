@@ -8,15 +8,18 @@ namespace TrevorDrepaBot.Conversation
         private readonly ISessionRepository _sessionRepository;
         private readonly ISymptomRepository _symptomRepository;
         private readonly IIntentService _intentService;
+        private readonly IClaudeConversationService _claudeConversationService;
 
         public DrepaConversationEngine(
             ISessionRepository sessionRepository,
             ISymptomRepository symptomRepository,
-            IIntentService intentService)
+            IIntentService intentService,
+            IClaudeConversationService claudeConversationService)
         {
             _sessionRepository = sessionRepository;
             _symptomRepository = symptomRepository;
             _intentService = intentService;
+            _claudeConversationService = claudeConversationService;
         }
         
         private const string MenuText =
@@ -45,126 +48,438 @@ namespace TrevorDrepaBot.Conversation
 
         private static int? ExtractScore(string text)
         {
-            if (int.TryParse(text.Trim(), out var value) && value >= 0 && value <= 10)
-                return value;
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
 
-            var digits = new string(text.Where(char.IsDigit).ToArray());
-            if (int.TryParse(digits, out value) && value >= 0 && value <= 10)
+            // 7/10
+            var slashMatch = System.Text.RegularExpressions.Regex.Match(
+                text,
+                @"\b(10|[0-9])\s*/\s*10\b");
+
+            if (slashMatch.Success)
+                return int.Parse(slashMatch.Groups[1].Value);
+
+            // 7 sur 10
+            var surMatch = System.Text.RegularExpressions.Regex.Match(
+                text,
+                @"\b(10|[0-9])\s+sur\s+10\b");
+
+            if (surMatch.Success)
+                return int.Parse(surMatch.Groups[1].Value);
+
+            // Cas "douleur 7", "fatigue 6", "niveau 5"
+            var contextualMatch = System.Text.RegularExpressions.Regex.Match(
+                text,
+                @"\b(douleur|fatigue|niveau|intensité|intensite)\s*(de)?\s*(10|[0-9])\b");
+
+            if (contextualMatch.Success)
+                return int.Parse(contextualMatch.Groups[3].Value);
+
+            // Nombre seul, uniquement si le message est très court
+            var trimmed = text.Trim();
+            if (int.TryParse(trimmed, out var value) && value >= 0 && value <= 10)
                 return value;
 
             return null;
         }
+        private static string? ExtractDuration(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
 
+            string[] fixedPatterns =
+            [
+                "depuis hier",
+                "depuis ce matin",
+                "depuis ce soir",
+                "depuis cette nuit",
+                "depuis quelques jours",
+                "aujourd'hui",
+                "aujourdhui",
+                "hier",
+                "ce matin",
+                "ce soir",
+                "cette nuit"
+            ];
+
+            foreach (var p in fixedPatterns)
+            {
+                if (text.Contains(p))
+                    return p;
+            }
+
+            var regexPatterns = new[]
+            {
+                @"\bdepuis\s+\d+\s+jour(s)?\b",
+                @"\bdepuis\s+\d+\s+semaine(s)?\b",
+                @"\bdepuis\s+\d+\s+mois\b",
+                @"\bil y a\s+\d+\s+jour(s)?\b",
+                @"\bil y a\s+\d+\s+semaine(s)?\b",
+                @"\bil y a\s+\d+\s+mois\b",
+                @"\bça fait\s+\d+\s+semaine(s)?\b",
+                @"\bca fait\s+\d+\s+semaine(s)?\b",
+                @"\bça fait\s+\d+\s+jour(s)?\b",
+                @"\bca fait\s+\d+\s+jour(s)?\b",
+                @"\b\d+\s+semaine(s)?\b",
+                @"\b\d+\s+jour(s)?\b"
+            };
+
+            foreach (var pattern in regexPatterns)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(text, pattern);
+                if (match.Success)
+                    return match.Value;
+            }
+
+            return null;
+        }
+
+        private static bool MentionsPhysicalSymptom(string text)
+        {
+            return text.Contains("mal")
+                || text.Contains("douleur")
+                || text.Contains("fièvre")
+                || text.Contains("fievre")
+                || text.Contains("fatigu")
+                || text.Contains("essouffl")
+                || text.Contains("respire")
+                || text.Contains("bizarre")
+                || text.Contains("pas bien")
+                || text.Contains("vertige")
+                || text.Contains("faible");
+        }
+
+        private static bool MentionsEmotion(string text)
+        {
+            return text.Contains("stress")
+                || text.Contains("angoisse")
+                || text.Contains("triste")
+                || text.Contains("peur")
+                || text.Contains("moral")
+                || text.Contains("anx")
+                || text.Contains("pression");
+        }
+
+        private static bool MentionsSchoolWork(string text)
+        {
+            return text.Contains("cours")
+                || text.Contains("école")
+                || text.Contains("ecole")
+                || text.Contains("travail")
+                || text.Contains("employeur")
+                || text.Contains("patron")
+                || text.Contains("formation")
+                || text.Contains("prof");
+        }
+
+        private static bool MentionsDoctor(string text)
+        {
+            return text.Contains("médecin")
+                || text.Contains("medecin")
+                || text.Contains("docteur")
+                || text.Contains("rendez-vous")
+                || text.Contains("rendez vous")
+                || text.Contains("rdv")
+                || text.Contains("consultation");
+        }
         private static string? ExtractPainLocation(string text)
         {
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
+
             string[] knownLocations =
             [
                 "jambe", "jambes", "bras", "dos", "poitrine", "ventre",
                 "tête", "tete", "hanche", "genou", "genoux", "pied", "pieds",
-                "main", "mains", "épaule", "epaule", "côte", "cotes", "côtes"
+                "main", "mains", "épaule", "epaule", "côte", "cotes", "côtes",
+                "estomac", "thorax", "cou", "nuque", "bassin"
             ];
 
             foreach (var location in knownLocations)
             {
-                if (text.Contains(location))
+                var pattern = $@"\b{System.Text.RegularExpressions.Regex.Escape(location)}\b";
+                if (System.Text.RegularExpressions.Regex.IsMatch(text, pattern))
                     return location;
             }
 
             return null;
         }
-        private string? TrySmartLocalReply(string text, SessionState state)
-        {
-            // 🔥 compréhension douleur libre
-            if (text.Contains("mal") || text.Contains("douleur"))
-            {
-                var location = ExtractPainLocation(text);
-                var score = ExtractScore(text);
-
-                if (location != null && score.HasValue)
-                {
-                    state.TempPainLevel = score;
-                    return $"Ok, donc tu as mal à **{location}** avec une douleur de **{score}/10**.\n\nDepuis quand ça a commencé ?";
-                }
-
-                if (location != null)
-                {
-                    return $"D’accord, tu as mal à **{location}**.\n\nTu peux me dire sur 10 à quel point la douleur est forte ?";
-                }
-
-                if (score.HasValue)
-                {
-                    return $"Ok, douleur à **{score}/10**.\n\nC’est où exactement ?";
-                }
-
-                return "Je comprends que tu as mal.\n\nTu peux me dire où exactement et à quel niveau sur 10 ?";
-            }
-
-            // fatigue
-            if (text.Contains("fatigu"))
-            {
-                return "Tu te sens fatigué… c’est fréquent avec la drépanocytose.\n\nSur 10 tu dirais combien ?";
-            }
-
-            // émotion
-            if (text.Contains("triste") || text.Contains("stress") || text.Contains("angoisse"))
-            {
-                return "Merci de me le dire. Tu veux m’expliquer ce qui te pèse le plus ?";
-            }
-
-            // respiration = urgence
-            if (text.Contains("respire") || text.Contains("essouffl"))
-            {
-                return "⚠️ Si tu es essoufflé, il faut contacter un médecin ou les urgences rapidement.";
-            }
-
-            return null;
-        }
-        private static string? DetectIntentLocally(string text, SessionState state)
+        private static string? ExtractSensation(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 
-            if (text == "menu" || text == "/menu")
-                return "menu";
+            string[] sensations =
+            [
+                "serré", "serre", "pression", "gêne", "gene", "brûlure", "brulure",
+                "piqûre", "piqure", "lourdeur", "crampe", "nausée", "nausee",
+                "vertige", "faiblesse", "oppression"
+            ];
 
-            if (text == "1" || text.Contains("drépanocytose") || text.Contains("drepanocytose"))
-                return "medical_information";
-
-            if (text == "2" || text.Contains("douleur") || text.Contains("crise") || text.Contains("j'ai mal") || text.Contains("jai mal"))
-                return "pain_crisis";
-
-            if (text == "3" || text.Contains("école") || text.Contains("ecole") || text.Contains("travail") || text.Contains("employeur"))
-                return "school_work_support";
-
-            if (text == "4" || text.Contains("stress") || text.Contains("angoisse") || text.Contains("moral") || text.Contains("triste"))
-                return "emotional_support";
-
-            if (text == "5" || text.Contains("urgence") || text.Contains("urgent") || text.Contains("médecin") || text.Contains("medecin"))
-                return "prepare_appointment";
-
-            if (text == "7" || text.Contains("historique santé") || text.Contains("historique sante") || text.Contains("check-ins"))
-                return "history";
-
-            if (text == "8" || text.Contains("bilan santé") || text.Contains("bilan sante"))
-                return "summary";
-
-            if (text.Contains("check-in") || text.Contains("checkin") || text.Contains("suivi santé") || text.Contains("suivi sante"))
-                return "health_checkin";
-
-            if (state.PendingStep == "health_q1_pain" && (ExtractScore(text).HasValue || ExtractPainLocation(text) != null))
-                return "health_q1_pain_answer";
-
-            if (state.PendingStep == "health_q2_fatigue" && ExtractScore(text).HasValue)
-                return "health_q2_fatigue_answer";
-
-            if (state.PendingStep == "health_q3_fever" && (IsYes(text) || IsNo(text)))
-                return "health_q3_fever_answer";
-
-            if (state.PendingStep == "health_q4_breathing" && (IsYes(text) || IsNo(text)))
-                return "health_q4_breathing_answer";
+            foreach (var sensation in sensations)
+            {
+                var pattern = $@"\b{System.Text.RegularExpressions.Regex.Escape(sensation)}\b";
+                if (System.Text.RegularExpressions.Regex.IsMatch(text, pattern))
+                    return sensation;
+            }
 
             return null;
         }
+        private static string? DetectTopic(string text)
+        {
+            if (text.Contains("appartement") || text.Contains("logement") || text.Contains("déménagement") || text.Contains("demenagement"))
+                return "logement";
+
+            if (text.Contains("cours") || text.Contains("école") || text.Contains("ecole") || text.Contains("projet") || text.Contains("exam"))
+                return "études";
+
+            if (text.Contains("travail") || text.Contains("emploi") || text.Contains("job"))
+                return "travail";
+
+            if (text.Contains("médecin") || text.Contains("medecin") || text.Contains("rdv") || text.Contains("rendez-vous"))
+                return "santé";
+
+            return null;
+        }
+
+        private static string? DetectEmotionLabel(string text)
+        {
+            if (text.Contains("angoisse") || text.Contains("angoissé") || text.Contains("angoisser"))
+                return "angoisse";
+
+            if (text.Contains("stress") || text.Contains("stressé"))
+                return "stress";
+
+            if (text.Contains("triste") || text.Contains("déprim") || text.Contains("deprim"))
+                return "tristesse";
+
+            if (text.Contains("peur"))
+                return "peur";
+
+            return null;
+        }
+        private string? TryAdvancedLocalReply(string text, SessionState state)
+        {
+            var location = ExtractPainLocation(text);
+            var score = ExtractScore(text);
+            var duration = ExtractDuration(text);
+            var sensation = ExtractSensation(text);
+            var detectedTopic = DetectTopic(text);
+            var detectedEmotion = DetectEmotionLabel(text);
+
+            if (detectedTopic != null)
+                state.CurrentTopic = detectedTopic;
+
+            if (detectedEmotion != null)
+                state.CurrentEmotion = detectedEmotion;
+
+            if (location != null)
+                state.SymptomLocation = location;
+
+            if (duration != null)
+                state.SymptomDuration = duration;
+
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                state.CurrentConcern = text;
+                state.SymptomNotes = text;
+            }
+
+            // Si on attendait une précision
+            if (state.WaitingClarification == true)
+            {
+                if (MentionsEmotion(text))
+                {
+                    state.ConversationMode = "emotional";
+
+                    if (state.CurrentTopic == "logement")
+                    {
+                        return "Je comprends. Donc en ce moment, le logement te met beaucoup de pression. Est-ce que le plus difficile, c’est de trouver rapidement, de gérer ça avec tes cours, ou autre chose ?";
+                    }
+
+                    if (state.CurrentTopic == "études")
+                    {
+                        return "Je comprends. Tes études semblent te peser en ce moment. Est-ce que c’est surtout la charge de travail, les délais, ou le manque de temps ?";
+                    }
+
+                    return "Merci de me le dire. Qu’est-ce qui te pèse le plus en ce moment ?";
+                }
+
+                if (MentionsSchoolWork(text))
+                {
+                    state.ConversationMode = "school_work";
+                    state.WaitingClarification = false;
+                    state.LastSection = "env";
+                    state.PendingStep = "env_q1_context";
+                    return "D’accord. Est-ce que c’est surtout lié à l’école, à la formation ou au travail ?";
+                }
+
+                if (MentionsDoctor(text))
+                {
+                    state.ConversationMode = "appointment";
+                    state.WaitingClarification = false;
+                    state.LastSection = "rdv";
+                    state.PendingStep = "prepare_rdv_q1_reason";
+                    return "D’accord. Quelle est la raison principale du rendez-vous ou de la consultation ?";
+                }
+
+                if (MentionsPhysicalSymptom(text) || location != null || score.HasValue || duration != null || sensation != null)
+                {
+                    state.ConversationMode = "physical";
+                    state.WaitingClarification = false;
+
+                    if (text.Contains("essouffl") || text.Contains("respire"))
+                    {
+                        return "⚠️ Si tu es essoufflé ou que tu respires mal, il faut contacter rapidement un médecin ou les urgences.";
+                    }
+
+                    if ((text.Contains("fièvre") || text.Contains("fievre")) && location != null)
+                    {
+                        return $"D’accord, tu mentionnes **{location}** et de la fièvre.\n\nSi tu te sens vraiment mal, contacte un médecin rapidement. Tu peux aussi me dire depuis quand ça dure.";
+                    }
+
+                    if (location != null && sensation != null && duration != null && !score.HasValue)
+                    {
+                        return $"D’accord, tu ressens quelque chose vers **{location}** avec une sensation de **{sensation}**, **{duration}**.\n\nEst-ce que c’est plutôt une douleur, une gêne, ou une pression qui t’inquiète ?";
+                    }
+
+                    if (location != null && score.HasValue && duration != null)
+                    {
+                        return $"D’accord, j’ai compris : douleur vers **{location}**, intensité **{score}/10**, apparue **{duration}**.\n\nEst-ce que tu as aussi de la fièvre ou un essoufflement ?";
+                    }
+
+                    if (location != null && sensation != null && !score.HasValue)
+                    {
+                        return $"D’accord, tu ressens quelque chose vers **{location}** avec une sensation de **{sensation}**.\n\nDepuis quand ça a commencé ?";
+                    }
+
+                    if (location != null && duration != null && !score.HasValue)
+                    {
+                        return $"D’accord, tu ressens quelque chose vers **{location}** **{duration}**.\n\nTu peux me dire si c’est plutôt une douleur, une gêne, une pression, ou autre chose ?";
+                    }
+
+                    if (location != null && score.HasValue)
+                    {
+                        return $"Ok, donc tu as mal à **{location}** avec une douleur de **{score}/10**.\n\nDepuis quand ça a commencé ?";
+                    }
+
+                    if (location != null)
+                    {
+                        return $"D’accord, tu ressens quelque chose vers **{location}**.\n\nDepuis quand ça a commencé, et est-ce que tu dirais que c’est une douleur ou plutôt une gêne ?";
+                    }
+
+                    if (score.HasValue)
+                    {
+                        return $"J’ai noté une intensité autour de **{score}/10**.\n\nC’est où exactement et depuis quand ?";
+                    }
+
+                    if (text.Contains("bizarre") || text.Contains("pas bien"))
+                    {
+                        state.WaitingClarification = true;
+                        return "Tu te sens bizarre… c’est plutôt **physique** (douleur, fatigue, fièvre, respiration) ou plutôt **émotionnel** (stress, moral, peur) ?";
+                    }
+
+                    if (text.Contains("fatigu"))
+                    {
+                        return "D’accord, tu te sens fatigué.\n\nDepuis quand, et sur 10 tu dirais combien ?";
+                    }
+
+                    return "Tu peux me décrire ce que tu ressens physiquement : où, depuis quand, et si c’est plutôt une douleur, une gêne ou une autre sensation ?";
+                }
+            }
+
+            // Cas physiques directs
+            if (MentionsPhysicalSymptom(text) || location != null || score.HasValue || duration != null || sensation != null)
+            {
+                state.ConversationMode = "physical";
+
+                if (text.Contains("essouffl") || text.Contains("respire"))
+                {
+                    return "⚠️ Si tu es essoufflé ou que tu respires mal, il faut contacter rapidement un médecin ou les urgences.";
+                }
+
+                if ((text.Contains("fièvre") || text.Contains("fievre")) && location != null)
+                {
+                    return $"D’accord, tu as mal vers **{location}** et tu mentionnes de la fièvre.\n\nSi tu te sens vraiment mal, contacte un médecin rapidement. Tu peux aussi me dire depuis quand ça dure.";
+                }
+
+                if (location != null && score.HasValue && duration != null)
+                {
+                    return $"D’accord, j’ai compris : douleur vers **{location}**, intensité **{score}/10**, apparue **{duration}**.\n\nEst-ce que tu veux qu’on fasse un petit point santé structuré ?";
+                }
+
+                if (location != null && score.HasValue)
+                {
+                    return $"Ok, donc tu as mal à **{location}** avec une douleur de **{score}/10**.\n\nDepuis quand ça a commencé ?";
+                }
+
+                if (location != null && duration != null)
+                {
+                    return $"D’accord, tu as mal à **{location}** **{duration}**.\n\nTu dirais combien sur 10 ?";
+                }
+
+                if (location != null)
+                {
+                    return $"D’accord, tu as mal à **{location}**.\n\nDepuis quand ça a commencé, et sur 10 tu dirais combien ?";
+                }
+
+                if (score.HasValue)
+                {
+                    return $"J’ai noté une douleur autour de **{score}/10**.\n\nC’est où exactement et depuis quand ?";
+                }
+
+                if (text.Contains("bizarre") || text.Contains("pas bien"))
+                {
+                    state.WaitingClarification = true;
+                    return "Tu te sens bizarre… c’est plutôt **physique** (douleur, fatigue, fièvre, respiration) ou plutôt **émotionnel** (stress, moral, peur) ?";
+                }
+
+                if (text.Contains("fatigu"))
+                {
+                    return "D’accord, tu te sens fatigué.\n\nDepuis quand, et sur 10 tu dirais combien ?";
+                }
+
+                return "Tu peux me décrire ce que tu ressens physiquement : où, depuis quand, et si tu veux l’intensité sur 10 ?";
+            }
+
+            // Cas émotionnels
+            if (MentionsEmotion(text))
+            {
+                state.ConversationMode = "emotional";
+                return "Merci de me le dire. Qu’est-ce qui te pèse le plus en ce moment ?";
+            }
+
+            // Cas école / travail
+            if (MentionsSchoolWork(text))
+            {
+                state.ConversationMode = "school_work";
+                state.LastSection = "env";
+                state.PendingStep = "env_q1_context";
+                return "D’accord. Est-ce que c’est surtout lié à l’école, à la formation ou au travail ?";
+            }
+
+            // Cas médecin / rendez-vous
+            if (MentionsDoctor(text))
+            {
+                state.ConversationMode = "appointment";
+                state.LastSection = "rdv";
+                state.PendingStep = "prepare_rdv_q1_reason";
+                return "D’accord. Quelle est la raison principale du rendez-vous ou de la consultation ?";
+            }
+
+            if (state.CurrentTopic == "logement" && state.CurrentEmotion != null)
+            {
+                return "Je comprends que la question du logement te mette sous pression. Parmi tout ça, c’est quoi le plus urgent pour toi en ce moment ?";
+            }
+
+            if (state.CurrentTopic == "études" && state.CurrentEmotion != null)
+            {
+                return "Je comprends que tes études et la pression autour te pèsent. C’est quoi le plus lourd à gérer pour toi en ce moment ?";
+            }
+
+            return null;
+        }
+    
         public async Task<string> GetReplyAsync(string userText, string sessionId, CancellationToken cancellationToken = default)
         {
             var text = (userText ?? "").Trim().ToLowerInvariant();
@@ -813,7 +1128,7 @@ namespace TrevorDrepaBot.Conversation
             }
 
             // 🧠 tentative locale intelligente
-            var smart = TrySmartLocalReply(text, state);
+            var smart = TryAdvancedLocalReply(text, state);
             if (smart != null)
             {
                 await _sessionRepository.SaveAsync(sessionId, state, cancellationToken);
@@ -830,8 +1145,21 @@ namespace TrevorDrepaBot.Conversation
             }
             if (intent == "unknown")
             {
-                return "Je veux bien t’aider. Est-ce que c’est plutôt :\n" +
-                    "• une douleur / un symptôme physique\n" +
+                var aiFollowUp = await _claudeConversationService.GenerateFollowUpAsync(
+                    userText,
+                    state.ConversationMode,
+                    state.CurrentConcern,
+                    state.SymptomLocation,
+                    state.SymptomDuration);
+
+                if (!string.IsNullOrWhiteSpace(aiFollowUp))
+                    return aiFollowUp;
+
+                state.WaitingClarification = true;
+                await _sessionRepository.SaveAsync(sessionId, state, cancellationToken);
+
+                return "Je veux bien t’aider.\n\nTu peux me dire si c’est plutôt :\n" +
+                    "• un symptôme physique\n" +
                     "• une question pour un médecin\n" +
                     "• du stress / le moral\n" +
                     "• l’école ou le travail ?";

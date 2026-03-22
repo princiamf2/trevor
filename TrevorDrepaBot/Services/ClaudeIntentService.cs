@@ -20,6 +20,7 @@ public class ClaudeIntentService : IIntentService
 
     public async Task<string> DetectIntentAsync(string userMessage)
     {
+        Console.WriteLine("[ClaudeIntent] called with: " + userMessage);
         if (string.IsNullOrWhiteSpace(_apiKey))
             return "unknown";
 
@@ -83,7 +84,7 @@ public class ClaudeIntentService : IIntentService
                 return "unknown";
 
             var intent = (textElement.GetString() ?? "unknown").Trim().ToLowerInvariant();
-
+            Console.WriteLine("[ClaudeIntent] intent: " + intent);
             return intent switch
             {
                 "pain_crisis" => "pain_crisis",

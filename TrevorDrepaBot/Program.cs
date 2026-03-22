@@ -24,6 +24,7 @@ builder.Services.AddScoped<DrepaConversationEngine>();
 builder.Services.AddScoped<IBot, DrepaBot>();
 
 builder.Services.AddSingleton<IIntentService, ClaudeIntentService>();
+builder.Services.AddSingleton<IClaudeConversationService, ClaudeConversationService>();
 
 var app = builder.Build();
 
